@@ -238,9 +238,13 @@ def show_info():
             break
 
     del buff[:]
-    if info_msg is not None:
+    lst = ''
+    if type(info_msg) is str:
         lst = info_msg.split('\n')
-        buff.append(map(lambda s: s.encode('utf-8'), lst))
+    if type(info_msg) is CT.Option and info_msg.val:	
+        lst = info_msg.val.split('\n')
+    buff.append(map(lambda s: s.encode('utf-8'), lst))
+    
 
 def clear_info():
     global info_msg

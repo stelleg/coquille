@@ -1,10 +1,15 @@
 import os
 import re
+import sys
 import subprocess
 import xml.etree.ElementTree as ET
 import signal
 
 from collections import deque, namedtuple
+
+logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 Ok = namedtuple('Ok', ['val', 'msg'])
 Err = namedtuple('Err', ['err'])
@@ -166,6 +171,7 @@ def get_answer():
     while True:
         try:
             data += os.read(fd, 0x4000)
+            os.write(logfd, "\n<receivedraw>\n raw: \n</received>\n".format(data))
             try:
                 elt = ET.fromstring('<coqtoproot>' + escape(data) + '</coqtoproot>')
                 shouldWait = True
@@ -175,7 +181,7 @@ def get_answer():
                         shouldWait = False
                         valueNode = c
                     if c.tag == 'message':
-                        messageNode = c[1]
+                        messageNode = c[2]
                 if shouldWait:
                     continue
                 else:
@@ -193,8 +199,11 @@ def get_answer():
 def call(name, arg, encoding='utf-8'):
     xml = encode_call(name, arg)
     msg = ET.tostring(xml, encoding)
+    os.write(logfd, "\n<sent>\n"+msg+"\n</sent>\n")
     send_cmd(msg)
     response = get_answer()
+    assert isinstance(response, Ok)
+    os.write(logfd, "\n<received>\n val:{} msg:{}\n</received>\n".format(response.val, response.msg))
     return response
 
 def send_cmd(cmd):
