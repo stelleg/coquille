@@ -128,7 +128,6 @@ def coq_next():
         goto_last_sent_dot()
 
 def coq_raw_query(*args):
-    clear_info()
 
     if CT.coqtop is None:
         print("Error: Coqtop isn't running. Are you sure you called :CoqLaunch?")
@@ -141,18 +140,12 @@ def coq_raw_query(*args):
     response = CT.query(raw_query, encoding)
 
     if response is None:
-        vim.command("call coquille#KillSession()")
-        print('ERROR: the Coq process died')
+        print('ERROR: cannot connect to coq process')
         return
 
-    if isinstance(response, CT.Ok):
-        if response.msg is not None:
-            show_info(response.msg)
-    elif isinstance(response, CT.Err):
-        show_info(response.msg)
-        print("FAIL")
-    else:
-        print("(ANOMALY) unknown answer: %s" % ET.tostring(response)) # ugly
+    show_info(response.msg)
+
+# Seems like querys return results immediately, don't need to do a second call
 
 def launch_coq(*args):
     CT.restart_coq(*args)
@@ -183,19 +176,16 @@ def show_goal():
 
     response = CT.goals()
         
+    show_info(response.msg)
+
     if isinstance(response, CT.Err):
         coq_rewind()
-        if response.msg is not None:
-            show_info(response.msg)
         return
 
     if isinstance(response.val, CT.OptionValue):
         print("Expected goal option, got {}".format(response.val))
         return
 
-    if response.msg is not None:
-        show_info(response.msg)
-     
     if response.val.val is None:
         buff.append('No goals.')
         return
@@ -223,22 +213,20 @@ def show_goal():
         buff.append('')
 
 def show_info(info_msg):
-    buff = None
-    for b in vim.buffers:
-        if re.match(".*Infos$", b.name):
-            buff = b
-            break
+    if info_msg is not None:
+        buff = None
+        for b in vim.buffers:
+            if re.match(".*Infos$", b.name):
+                buff = b
+                break
 
-    del buff[:]
-    lst = ''
-    if type(info_msg) is str:
-        lst = info_msg.split('\n')
-    if type(info_msg) is CT.Option and info_msg.val:	
-        lst = info_msg.val.split('\n')
-    buff.append(map(lambda s: s.encode('utf-8'), lst))
-
-def clear_info():
-    show_info('')
+        del buff[:]
+        lst = ''
+        if type(info_msg) is str or type(info_msg) is unicode:
+            lst = info_msg.split('\n')
+        if type(info_msg) is CT.Option and info_msg.val:	
+            lst = info_msg.val.split('\n')
+        buff.append(map(lambda s: s.encode('utf-8'), lst))
 
 def reset_color():
     global error_at
@@ -315,6 +303,7 @@ def send_until_fail():
             print('ERROR: the Coq process died')
             return
 
+        show_info(response.msg)
         if isinstance(response, CT.Ok):
             (eline, ecol) = message_range['stop']
             encountered_dots.append((eline, ecol + 1))
@@ -325,7 +314,6 @@ def send_until_fail():
         else:
             send_queue.clear()
             if isinstance(response, CT.Err):
-                show_info(response.msg)
                 loc_s = response.err.get('loc_s')
                 if loc_s is not None:
                     loc_s = int(loc_s)
@@ -342,9 +330,9 @@ def send_until_fail():
 #       reason the errors show up on second call, instead of response to advance
         
         response = CT.goals()
+        show_info(response.msg)
         if isinstance(response, CT.Err):
             send_queue.clear()
-            show_info(response.msg)
             loc_s = response.err.get('loc_s')
             if loc_s is not None:
                 loc_s = int(loc_s)

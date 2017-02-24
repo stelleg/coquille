@@ -8,7 +8,7 @@ import signal
 from collections import deque, namedtuple
 
 # Logging
-#  logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+#logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
 
 # Hack to make sure utf-8 works correctly
 reload(sys)
@@ -37,7 +37,6 @@ def parse_response(xml):
     if xml.get('val') == 'good':
         return Ok(parse_value(xml[0]), None)
     elif xml.get('val') == 'fail':
-        #print('err: %s' % ET.tostring(xml))
         return Err(xml, parse_error(xml))
     else:
         assert False, 'expected "good" or "fail" in <value>'
@@ -179,9 +178,11 @@ def get_answer():
                 if v is not None:
                     #os.write(logfd, "\n<received id=\"{}\">\n {} \n</received>\n".format(state_id, escape(data)))
                     vp = parse_response(v)
-                    m = elt.find("message/richpp")
-                    if m is not None and isinstance(vp, Ok):
-                        return Ok(vp.val, parse_value(m))
+                    m = elt.findall("message/richpp")
+                    if len(m) == 1 and isinstance(vp, Ok):
+                        return Ok(vp.val, parse_value(m[0]))
+                    elif len(m) > 1 and isinstance(vp, Ok):
+                        return Ok(vp.val, '\n'.join([parse_value(mes) for mes in m]))
                     else:
                         return vp
             except ET.ParseError:
