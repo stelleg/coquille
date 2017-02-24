@@ -8,7 +8,7 @@ import signal
 from collections import deque, namedtuple
 
 # Logging
-logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+#  logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
 
 # Hack to make sure utf-8 works correctly
 reload(sys)
@@ -177,7 +177,7 @@ def get_answer():
                 elt = ET.fromstring('<coqtoproot>' + escape(data) + '</coqtoproot>')
                 v = elt.find("value")
                 if v is not None:
-                    os.write(logfd, "\n<received id=\"{}\">\n {} \n</received>\n".format(state_id, escape(data)))
+                    #os.write(logfd, "\n<received id=\"{}\">\n {} \n</received>\n".format(state_id, escape(data)))
                     vp = parse_response(v)
                     m = elt.find("message/richpp")
                     if m is not None and isinstance(vp, Ok):
@@ -193,10 +193,9 @@ def get_answer():
 def call(name, arg, encoding='utf-8'):
     xml = encode_call(name, arg)
     msg = ET.tostring(xml, encoding)
-    os.write(logfd, "\n<sent id=\"{}\">\n {} \n</sent>\n".format(state_id, msg))
+    #os.write(logfd, "\n<sent id=\"{}\">\n {} \n</sent>\n".format(state_id, msg))
     send_cmd(msg)
     response = get_answer()
-    #os.write(logfd, "\n<received>\n val:{} msg:{}\n</received>\n".format(response.val, response.msg))
     return response
 
 def send_cmd(cmd):
