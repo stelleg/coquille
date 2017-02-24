@@ -8,7 +8,7 @@ install:
   - pip install -U pytest
 
 script:
-  - wget 'http://homes.cs.washington.edu/~jrw12/coq-8.5-build-local.tgz'
-  - tar xf coq-8.5-build-local.tgz
-  - export PATH=$PWD/coq-8.5/bin:$PATH
+  - wget http://cs.unm.edu/~stelleg/coq-8.6-5-x86_64.pkg.tar.xz
+  - tar xf coq-8.6-5-x86_64.pkg.tar.xz
+  - export PATH=$PWD/usr/bin:$PATH
   - pytest -q ./autoload/test.py
