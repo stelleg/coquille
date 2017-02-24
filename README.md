@@ -1,7 +1,7 @@
 Coquille
 ========
 
-[![Build Status](https://travis-ci.org/the-lambda-church/coquille.svg?branch=pathogen-bundle)](https://travis-ci.org/the-lambda-church/coquille)
+[![Build Status](https://travis-ci.org/stelleg/coquille.svg?branch=8.6)](https://travis-ci.org/stelleg/coquille)
 
 Coquille is a vim plugin aiming to bring the interactivity of CoqIDE into your
 favorite editor.
