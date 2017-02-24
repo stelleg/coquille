@@ -83,12 +83,12 @@ syn region coqObligation contains=coqOblExpr matchgroup=coqVernacCmd start="\<Ob
 syn region coqOblExpr    contains=coqLtac   matchgroup=coqVernacPunctuation start=":=" end="\.\_s"
 
 " Scopes
+syn region coqLocal    contains=coqOpenClose matchgroup=coqVernacCmd start="\<Local\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
 syn region coqBind    contains=coqScope matchgroup=coqVernacCmd start="\<Bind\|Delimit\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
 syn region coqArgsScope contains=coqScope matchgroup=coqVernacCmd start="\<Arguments\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
-syn region coqOpen    contains=coqScope matchgroup=coqVernacCmd start="\<Open\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
-syn region coqClose   contains=coqScope,coqLocalScope matchgroup=coqVernacCmd start="\<Close\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
+syn region coqOpenClose    contains=coqScope matchgroup=coqVernacCmd start="\<Open\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
+syn region coqOpenClose   contains=coqScope matchgroup=coqVernacCmd start="\<Close\>" matchgroup=coqVernacPunctuation end="\.\_s" keepend
 syn region coqScope   contained matchgroup=coqVernacCmd start="\<Scope\>" end="\.\_s"
-syn region coqLocalScope contained contains=coqScope matchgroup=coqVernacCmd start="\<Local\>" end="\.\_s"
 
 " Hints
 syn region coqHint contains=coqHintOption start="\<Hint\>" end="\.\_s" keepend
