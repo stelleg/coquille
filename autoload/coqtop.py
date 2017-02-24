@@ -7,12 +7,15 @@ import signal
 
 from collections import deque, namedtuple
 
+# Logging
 logfd = os.open("/tmp/coqlog", os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+
+# Hack to make sure utf-8 works correctly
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
 Ok = namedtuple('Ok', ['val', 'msg'])
-Err = namedtuple('Err', ['err'])
+Err = namedtuple('Err', ['err', 'msg'])
 
 Inl = namedtuple('Inl', ['val'])
 Inr = namedtuple('Inr', ['val'])
@@ -34,8 +37,8 @@ def parse_response(xml):
     if xml.get('val') == 'good':
         return Ok(parse_value(xml[0]), None)
     elif xml.get('val') == 'fail':
-        print('err: %s' % ET.tostring(xml))
-        return Err(parse_error(xml))
+        #print('err: %s' % ET.tostring(xml))
+        return Err(xml, parse_error(xml))
     else:
         assert False, 'expected "good" or "fail" in <value>'
 
@@ -91,7 +94,7 @@ def parse_value(xml):
         return ''.join(xml.itertext())
 
 def parse_error(xml):
-    return ET.fromstring(re.sub(r"<state_id val=\"\d+\" />", '', ET.tostring(xml)))
+    return ''.join(xml.find('richpp').itertext())
 
 def build(tag, val=None, children=()):
     attribs = {'val': val} if val is not None else {}
@@ -166,44 +169,34 @@ def escape(cmd):
 
 def get_answer():
     fd = coqtop.stdout.fileno()
-    messageNode = None
     data = ''
     while True:
         try:
             data += os.read(fd, 0x4000)
-            os.write(logfd, "\n<receivedraw>\n raw: \n</received>\n".format(data))
             try:
                 elt = ET.fromstring('<coqtoproot>' + escape(data) + '</coqtoproot>')
-                shouldWait = True
-                valueNode = None
-                for c in elt:
-                    if c.tag == 'value':
-                        shouldWait = False
-                        valueNode = c
-                    if c.tag == 'message':
-                        messageNode = c[2]
-                if shouldWait:
-                    continue
-                else:
-                    vp = parse_response(valueNode)
-                    if messageNode is not None:
-                        if isinstance(vp, Ok):
-                            return Ok(vp.val, parse_value(messageNode))
-                    return vp
+                v = elt.find("value")
+                if v is not None:
+                    os.write(logfd, "\n<received id=\"{}\">\n {} \n</received>\n".format(state_id, escape(data)))
+                    vp = parse_response(v)
+                    m = elt.find("message/richpp")
+                    if m is not None and isinstance(vp, Ok):
+                        return Ok(vp.val, parse_value(m))
+                    else:
+                        return vp
             except ET.ParseError:
                 continue
         except OSError:
-            # coqtop died
+            print("coqtop not responding")
             return None
 
 def call(name, arg, encoding='utf-8'):
     xml = encode_call(name, arg)
     msg = ET.tostring(xml, encoding)
-    os.write(logfd, "\n<sent>\n"+msg+"\n</sent>\n")
+    os.write(logfd, "\n<sent id=\"{}\">\n {} \n</sent>\n".format(state_id, msg))
     send_cmd(msg)
     response = get_answer()
-    assert isinstance(response, Ok)
-    os.write(logfd, "\n<received>\n val:{} msg:{}\n</received>\n".format(response.val, response.msg))
+    #os.write(logfd, "\n<received>\n val:{} msg:{}\n</received>\n".format(response.val, response.msg))
     return response
 
 def send_cmd(cmd):
@@ -216,8 +209,8 @@ def restart_coq(*args):
               , '-ideslave'
               , '-main-channel'
               , 'stdfds'
-              , '-async-proofs'
-              , 'on'
+#              , '-async-proofs'
+#              , 'on'
               ]
     try:
         if os.name == 'nt':

@@ -19,8 +19,6 @@ send_queue = deque([])
 
 error_at = None
 
-info_msg = None
-
 ###################
 # synchronization #
 ###################
@@ -36,12 +34,11 @@ def sync():
     saved_sync = curr_sync
 
 def _reset():
-    global saved_sync, encountered_dots, info_msg, error_at, send_queue
+    global saved_sync, encountered_dots, error_at, send_queue
     encountered_dots = []
     send_queue = deque([])
     saved_sync = None
     error_at   = None
-    info_msg   = None
     reset_color()
 
 #####################
@@ -57,9 +54,8 @@ def goto_last_sent_dot():
     vim.current.window.cursor = (line + 1, col)
 
 def coq_rewind(steps=1):
-    clear_info()
 
-    global encountered_dots, info_msg
+    global encountered_dots
 
     if steps < 1 or encountered_dots == []:
         return
@@ -78,7 +74,7 @@ def coq_rewind(steps=1):
     if isinstance(response, CT.Ok):
         encountered_dots = encountered_dots[:len(encountered_dots) - steps]
     else:
-        info_msg = "[COQUILLE ERROR] Unexpected answer:\n\n%s" % response
+        show_info("[COQUILLE ERROR] Unexpected answer:\n\n%s" % response)
 
     refresh()
 
@@ -134,7 +130,6 @@ def coq_next():
 def coq_raw_query(*args):
     clear_info()
 
-    global info_msg
     if CT.coqtop is None:
         print("Error: Coqtop isn't running. Are you sure you called :CoqLaunch?")
         return
@@ -152,15 +147,12 @@ def coq_raw_query(*args):
 
     if isinstance(response, CT.Ok):
         if response.msg is not None:
-            info_msg = response.msg
+            show_info(response.msg)
     elif isinstance(response, CT.Err):
-        info_msg = response.err.text
+        show_info(response.msg)
         print("FAIL")
     else:
         print("(ANOMALY) unknown answer: %s" % ET.tostring(response)) # ugly
-
-    show_info()
-
 
 def launch_coq(*args):
     CT.restart_coq(*args)
@@ -178,11 +170,9 @@ def debug():
 
 def refresh():
     show_goal()
-    show_info()
     reset_color()
 
 def show_goal():
-    global info_msg
 
     buff = None
     for b in vim.buffers:
@@ -192,21 +182,25 @@ def show_goal():
     del buff[:]
 
     response = CT.goals()
+        
+    if isinstance(response, CT.Err):
+        coq_rewind()
+        if response.msg is not None:
+            show_info(response.msg)
+        return
 
-    if response is None:
-        vim.command("call coquille#KillSession()")
-        print('ERROR: the Coq process died')
+    if isinstance(response.val, CT.OptionValue):
+        print("Expected goal option, got {}".format(response.val))
         return
 
     if response.msg is not None:
-        info_msg = response.msg
-
+        show_info(response.msg)
+     
     if response.val.val is None:
         buff.append('No goals.')
         return
 
     goals = response.val.val
-
     sub_goals = goals.fg
 
     nb_subgoals = len(sub_goals)
@@ -228,9 +222,7 @@ def show_goal():
         buff.append(lines)
         buff.append('')
 
-def show_info():
-    global info_msg
-
+def show_info(info_msg):
     buff = None
     for b in vim.buffers:
         if re.match(".*Infos$", b.name):
@@ -244,12 +236,9 @@ def show_info():
     if type(info_msg) is CT.Option and info_msg.val:	
         lst = info_msg.val.split('\n')
     buff.append(map(lambda s: s.encode('utf-8'), lst))
-    
 
 def clear_info():
-    global info_msg
-    info_msg = ''
-    show_info()
+    show_info('')
 
 def reset_color():
     global error_at
@@ -309,9 +298,7 @@ def send_until_fail():
     error.
     When this function returns, [send_queue] is empty.
     """
-    clear_info()
-
-    global encountered_dots, error_at, info_msg
+    global encountered_dots, error_at
 
     encoding = vim.eval('&fileencoding') or 'utf-8'
 
@@ -323,7 +310,6 @@ def send_until_fail():
         message = _between(message_range['start'], message_range['stop'])
 
         response = CT.advance(message, encoding)
-
         if response is None:
             vim.command("call coquille#KillSession()")
             print('ERROR: the Coq process died')
@@ -335,16 +321,15 @@ def send_until_fail():
 
             optionnal_info = response.val[1]
             if len(response.val) > 1 and isinstance(response.val[1], tuple):
-                info_msg = response.val[1][1]
+                show_info(response.val[1][1])
         else:
             send_queue.clear()
             if isinstance(response, CT.Err):
-                response = response.err
-                info_msg = response.text
-                loc_s = response.get('loc_s')
+                show_info(response.msg)
+                loc_s = response.err.get('loc_s')
                 if loc_s is not None:
                     loc_s = int(loc_s)
-                    loc_e = int(response.get('loc_e'))
+                    loc_e = int(response.err.get('loc_e'))
                     (l, c) = message_range['start']
                     (l_start, c_start) = _pos_from_offset(c, message, loc_s)
                     (l_stop, c_stop)   = _pos_from_offset(c, message, loc_e)
@@ -353,6 +338,22 @@ def send_until_fail():
                 print("(ANOMALY) unknown answer: %s" % ET.tostring(response))
             break
 
+#       Have to add goal check for every iteration of the loop because for some
+#       reason the errors show up on second call, instead of response to advance
+        
+        response = CT.goals()
+        if isinstance(response, CT.Err):
+            send_queue.clear()
+            show_info(response.msg)
+            loc_s = response.err.get('loc_s')
+            if loc_s is not None:
+                loc_s = int(loc_s)
+                loc_e = int(response.err.get('loc_e'))
+                (l, c) = message_range['start']
+                (l_start, c_start) = _pos_from_offset(c, message, loc_s)
+                (l_stop, c_stop)   = _pos_from_offset(c, message, loc_e)
+                error_at = ((l + l_start, c_start), (l + l_stop, c_stop))
+    
     refresh()
 
 def _pos_from_offset(col, msg, offset):
