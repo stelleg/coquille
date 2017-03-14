@@ -72,6 +72,7 @@ def coq_rewind(steps=1):
         return
 
     if isinstance(response, CT.Ok):
+        error_at = None
         encountered_dots = encountered_dots[:len(encountered_dots) - steps]
     else:
         show_info("[COQUILLE ERROR] Unexpected answer:\n\n%s" % response)
@@ -262,7 +263,9 @@ def reset_color():
         stop  = { 'line': eline + 1, 'col': ecol }
         zone = _make_matcher(start, stop)
         vim.command("let b:errors = matchadd('CoqError', '%s')" % zone)
-        error_at = None
+        #error_at = None
+        #raise Exception("coloring stacktrace ")
+        #print 'error at', error_at
 
 def rewind_to(line, col):
     if CT.coqtop is None:
@@ -291,7 +294,7 @@ def send_until_fail():
     encoding = vim.eval('&fileencoding') or 'utf-8'
 
     while len(send_queue) > 0:
-        reset_color()
+        #reset_color()
         vim.command('redraw')
 
         message_range = send_queue.popleft()
@@ -305,6 +308,7 @@ def send_until_fail():
 
         show_info(response.msg)
         if isinstance(response, CT.Ok):
+            error_at = None
             (eline, ecol) = message_range['stop']
             encountered_dots.append((eline, ecol + 1))
 
