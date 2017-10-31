@@ -21,6 +21,7 @@ Inl = namedtuple('Inl', ['val'])
 Inr = namedtuple('Inr', ['val'])
 
 StateId = namedtuple('StateId', ['id'])
+RouteId = namedtuple('RouteId', ['id'])
 Option = namedtuple('Option', ['val'])
 
 OptionState = namedtuple('OptionState', ['sync', 'depr', 'name', 'value'])
@@ -57,6 +58,8 @@ def parse_value(xml):
         return int(xml.text)
     elif xml.tag == 'state_id':
         return StateId(int(xml.get('val')))
+    elif xml.tag == 'route_id':
+        return RouteId(int(xml.get('val')))
     elif xml.tag == 'list':
         return [parse_value(c) for c in xml]
     elif xml.tag == 'option':
@@ -121,6 +124,8 @@ def encode_value(v):
         return xml
     elif isinstance(v, StateId):
         return build('state_id', str(v.id))
+    elif isinstance(v, RouteId):
+        return build('route_id', str(v.id))
     elif isinstance(v, list):
         return build('list', None, [encode_value(c) for c in v])
     elif isinstance(v, Option):
@@ -145,6 +150,7 @@ def encode_value(v):
 coqtop = None
 states = []
 state_id = None
+route_id = 0
 root_state = None
 
 def kill_coqtop():
@@ -178,10 +184,9 @@ def get_answer():
                 if v is not None:
                     os.write(logfd, "\n<received id=\"{}\">\n {} \n</received>\n".format(state_id, escape(data)))
                     vp = parse_response(v)
-                    m = elt.findall("message/richpp")
-                    if len(m) == 1 and isinstance(vp, Ok):
-                        return Ok(vp.val, parse_value(m[0]))
-                    elif len(m) > 1 and isinstance(vp, Ok):
+                    m = elt.findall("feedback/feedback_content/message/richpp")
+                    os.write(logfd, "\n vp : {}, messages: {}\n".format(vp, m))
+                    if len(m) >= 1 and isinstance(vp, Ok):
                         return Ok(vp.val, '\n'.join([parse_value(mes) for mes in m]))
                     else:
                         return vp
@@ -264,7 +269,7 @@ def rewind(step = 1):
     return call('Edit_at', state_id)
 
 def query(cmd, encoding = 'utf-8'):
-    r = call('Query', (cmd, cur_state()), encoding)
+    r = call('Query', (RouteId(route_id),(cmd, cur_state())), encoding)
     return r
 
 def goals():
