@@ -33,19 +33,19 @@ def test_proof():
     launch_coq()
 
     advance(cmd1)
-    assert get_goals() == Goals([Goal('2', [], 'forall n : nat, n + 0 = n')], [], [], [])
+    assert get_goals() == Goals([Goal('3', [], 'forall n : nat, n + 0 = n')], [], [], [])
     advance(cmd2)
-    assert get_goals() == Goals([Goal('2', [], 'forall n : nat, n + 0 = n')], [], [], [])
+    assert get_goals() == Goals([Goal('3', [], 'forall n : nat, n + 0 = n')], [], [], [])
     advance(cmd3)
-    assert get_goals() == Goals([Goal('3', ['n : nat'], 'n + 0 = n')], [], [], [])
+    assert get_goals() == Goals([Goal('4', ['n : nat'], 'n + 0 = n')], [], [], [])
     advance(cmd4)
-    assert get_goals() == Goals([Goal('7', [], '0 + 0 = 0'), Goal('10', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' + 0 = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('8', [], '0 + 0 = 0'), Goal('11', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' + 0 = S n'")], [], [], [])
     advance(cmd5)
-    assert get_goals() == Goals([Goal('10', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' + 0 = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('11', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' + 0 = S n'")], [], [], [])
     advance(cmd6)
-    assert get_goals() == Goals([Goal('13', ["n' : nat", "IHn' : n' + 0 = n'"], "S (n' + 0) = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S (n' + 0) = S n'")], [], [], [])
     advance(cmd7)
-    assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('15', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
     advance(cmd8)
     assert get_goals() == Goals([], [], [], [])
     advance(cmd9)
@@ -56,15 +56,15 @@ def test_proof():
     rewind()
     assert get_goals() == Goals([], [], [], [])
     rewind()
-    assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('15', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
     rewind()
-    assert get_goals() == Goals([Goal('13', ["n' : nat", "IHn' : n' + 0 = n'"], "S (n' + 0) = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S (n' + 0) = S n'")], [], [], [])
 
     assert read_states() == [StateId(1), StateId(2), StateId(3), StateId(4), StateId(5), StateId(6)]
     assert cur_state() == StateId(7)
 
     advance(cmd7)
-    assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
+    assert get_goals() == Goals([Goal('15', ["n' : nat", "IHn' : n' + 0 = n'"], "S n' = S n'")], [], [], [])
     advance(cmd8)
     assert get_goals() == Goals([], [], [], [])
     advance(cmd9)
@@ -72,7 +72,7 @@ def test_proof():
 
     assert read_states() == [StateId(1), StateId(2), StateId(3), StateId(4), StateId(5), StateId(6), StateId(7), StateId(11), StateId(12)]
 
-    assert query("Print plus_0_r.") == Ok('', "plus_0_r = \nfun n : nat =>\nnat_ind (fun n0 : nat => n0 + 0 = n0) eq_refl\n  (fun (n' : nat) (IHn' : n' + 0 = n') =>\n   eq_ind_r (fun n0 : nat => S n0 = S n') eq_refl IHn') n\n     : forall n : nat, n + 0 = n\n\nArgument scope is [nat_scope]")
-    assert query("Check plus_0_r.") == Ok('', 'plus_0_r\n     : forall n : nat, n + 0 = n')
+    assert query("Print plus_0_r.") == Ok((), "plus_0_r = \nfun n : nat =>\nnat_ind (fun n0 : nat => n0 + 0 = n0) eq_refl\n  (fun (n' : nat) (IHn' : n' + 0 = n') =>\n   eq_ind_r (fun n0 : nat => S n0 = S n') eq_refl IHn') n\n     : forall n : nat, n + 0 = n\n\nArgument scope is [nat_scope]")
+    assert query("Check plus_0_r.") == Ok((), 'plus_0_r\n     : forall n : nat, n + 0 = n')
 
     kill_coqtop()
