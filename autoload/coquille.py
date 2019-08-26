@@ -53,7 +53,7 @@ def kill_coqtop():
     _reset()
 
 def goto_last_sent_dot():
-    (line, col) = (0,1) if encountered_dots == [] else encountered_dots[-1]
+    (line, col) = (0, 1) if encountered_dots == [] else encountered_dots[-1]
     vim.current.window.cursor = (line + 1, col)
 
 def coq_rewind(steps=1):
@@ -96,7 +96,7 @@ def coq_to_cursor():
     sync()
 
     (cline, ccol) = vim.current.window.cursor
-    (line, col)  = encountered_dots[-1] if encountered_dots else (0,0)
+    (line, col)  = encountered_dots[-1] if encountered_dots else (0, 0)
 
     if cline < line or (cline == line and ccol < col):
         rewind_to(cline - 1, ccol)
@@ -119,7 +119,7 @@ def coq_next():
 
     sync()
 
-    (line, col)  = encountered_dots[-1] if encountered_dots else (0,0)
+    (line, col)  = encountered_dots[-1] if encountered_dots else (0, 0)
     message_range = _get_message_range((line, col))
 
     if message_range is None: return
@@ -220,11 +220,11 @@ def show_goal():
         if idx == 0:
             # we print the environment only for the current subgoal
             for hyp in hyps:
-                lst = map(lambda s: s.encode('utf-8'), hyp.split('\n'))
+                lst = [s.encode('utf-8') for s in hyp.split('\n')]
                 buff.append(lst)
         buff.append('')
-        buff.append('======================== ( %d / %d )' % (idx+1 , nb_subgoals))
-        lines = map(lambda s: s.encode('utf-8'), ccl.split('\n'))
+        buff.append('======================== ( %d / %d )' % (idx+1, nb_subgoals))
+        lines = [s.encode('utf-8') for s in ccl.split('\n')]
         buff.append(lines)
         buff.append('')
 
@@ -240,7 +240,7 @@ def show_info():
     del buff[:]
     if info_msg is not None:
         lst = info_msg.split('\n')
-        buff.append(map(lambda s: s.encode('utf-8'), lst))
+        buff.append([s.encode('utf-8') for s in lst])
 
 def clear_info():
     global info_msg
@@ -267,7 +267,7 @@ def reset_color():
         zone = _make_matcher(start, stop)
         vim.command("let b:checked = matchadd('CheckedByCoq', '%s')" % zone)
     if len(send_queue) > 0:
-        (l, c) = encountered_dots[-1] if encountered_dots else (0,-1)
+        (l, c) = encountered_dots[-1] if encountered_dots else (0, -1)
         r = send_queue.pop()
         send_queue.append(r)
         (line, col) = r['stop']
@@ -291,7 +291,7 @@ def rewind_to(line, col):
         return
 
     predicate = lambda x: x <= (line, col)
-    lst = filter(predicate, encountered_dots)
+    lst = list(filter(predicate, encountered_dots))
     steps = len(encountered_dots) - len(lst)
     coq_rewind(steps)
 
