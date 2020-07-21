@@ -1,5 +1,6 @@
 from coqtop import *
 
+
 def get_goals():
     r = goals()
     if r is None:
@@ -51,7 +52,8 @@ def test_proof():
     advance(cmd9)
     assert get_goals() == "no goals"
 
-    assert states == [StateId(1), StateId(2), StateId(3), StateId(4), StateId(5), StateId(6), StateId(7), StateId(8), StateId(9)]
+    assert states == [StateId(1), StateId(2), StateId(3), StateId(
+        4), StateId(5), StateId(6), StateId(7), StateId(8), StateId(9)]
 
     rewind()
     assert get_goals() == Goals([], [], [], [])
@@ -60,7 +62,8 @@ def test_proof():
     rewind()
     assert get_goals() == Goals([Goal('14', ["n' : nat", "IHn' : n' + 0 = n'"], "S (n' + 0) = S n'")], [], [], [])
 
-    assert read_states() == [StateId(1), StateId(2), StateId(3), StateId(4), StateId(5), StateId(6)]
+    assert read_states() == [StateId(1), StateId(
+        2), StateId(3), StateId(4), StateId(5), StateId(6)]
     assert cur_state() == StateId(7)
 
     advance(cmd7)
@@ -70,7 +73,8 @@ def test_proof():
     advance(cmd9)
     assert get_goals() == "no goals"
 
-    assert read_states() == [StateId(1), StateId(2), StateId(3), StateId(4), StateId(5), StateId(6), StateId(7), StateId(11), StateId(12)]
+    assert read_states() == [StateId(1), StateId(2), StateId(3), StateId(
+        4), StateId(5), StateId(6), StateId(7), StateId(11), StateId(12)]
 
     assert query("Print plus_0_r.") == Ok((), "plus_0_r = \nfun n : nat =>\nnat_ind (fun n0 : nat => n0 + 0 = n0) eq_refl\n  (fun (n' : nat) (IHn' : n' + 0 = n') =>\n   eq_ind_r (fun n0 : nat => S n0 = S n') eq_refl IHn') n\n     : forall n : nat, n + 0 = n\n\nArgument scope is [nat_scope]")
     assert query("Check plus_0_r.") == Ok((), 'plus_0_r\n     : forall n : nat, n + 0 = n')

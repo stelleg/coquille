@@ -33,6 +33,7 @@ Goals = namedtuple('Goals', ['fg', 'bg', 'shelved', 'given_up'])
 Goal = namedtuple('Goal', ['id', 'hyp', 'ccl'])
 Evar = namedtuple('Evar', ['info'])
 
+
 def parse_response(xml):
     assert xml.tag == 'value'
     if xml.get('val') == 'good':
@@ -41,6 +42,7 @@ def parse_response(xml):
         return Err(xml, parse_error(xml))
     else:
         assert False, 'expected "good" or "fail" in <value>'
+
 
 def parse_value(xml):
     if xml.tag == 'unit':
@@ -79,24 +81,26 @@ def parse_value(xml):
         else:
             assert False, 'expected "in_l" or "in_r" in <union>'
     elif xml.tag == 'option_state':
-        sync, depr, name, value = map(parse_value, xml)
+        sync, depr, name, value = list(map(parse_value, xml))
         return OptionState(sync, depr, name, value)
     elif xml.tag == 'option_value':
         return OptionValue(parse_value(xml[0]))
     elif xml.tag == 'status':
-        path, proofname, allproofs, proofnum = map(parse_value, xml)
+        path, proofname, allproofs, proofnum = list(map(parse_value, xml))
         return Status(path, proofname, allproofs, proofnum)
     elif xml.tag == 'goals':
-        return Goals(*map(parse_value, xml))
+        return Goals(*list(map(parse_value, xml)))
     elif xml.tag == 'goal':
-        return Goal(*map(parse_value, xml))
+        return Goal(*list(map(parse_value, xml)))
     elif xml.tag == 'evar':
-        return Evar(*map(parse_value, xml))
+        return Evar(*list(map(parse_value, xml)))
     elif xml.tag == 'xml' or xml.tag == 'richpp':
         return ''.join(xml.itertext())
 
+
 def parse_error(xml):
     return ''.join(xml.find('richpp').itertext())
+
 
 def build(tag, val=None, children=()):
     attribs = {'val': val} if val is not None else {}
@@ -104,8 +108,10 @@ def build(tag, val=None, children=()):
     xml.extend(children)
     return xml
 
+
 def encode_call(name, arg):
     return build('call', name, [encode_value(arg)])
+
 
 def encode_value(v):
     if v == ():
@@ -153,6 +159,7 @@ state_id = None
 route_id = 0
 root_state = None
 
+
 def kill_coqtop():
     global coqtop
     if coqtop:
@@ -163,14 +170,17 @@ def kill_coqtop():
             pass
         coqtop = None
 
+
 def ignore_sigint():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+
 
 def escape(cmd):
     return cmd.replace("&nbsp;", ' ') \
               .replace("&apos;", '\'') \
               .replace("&#40;", '(') \
               .replace("&#41;", ')')
+
 
 def get_answer():
     fd = coqtop.stdout.fileno()
@@ -196,6 +206,7 @@ def get_answer():
             print("coqtop not responding")
             return None
 
+
 def call(name, arg, encoding='utf-8'):
     xml = encode_call(name, arg)
     msg = ET.tostring(xml, encoding)
@@ -204,8 +215,10 @@ def call(name, arg, encoding='utf-8'):
     response = get_answer()
     return response
 
+
 def send_cmd(cmd):
     coqtop.stdin.write(cmd)
+
 
 def restart_coq(*args):
     global coqtop, root_state, state_id
@@ -219,17 +232,11 @@ def restart_coq(*args):
     try:
         if os.name == 'nt':
             coqtop = subprocess.Popen(
-                options + list(args)
-              , stdin = subprocess.PIPE
-              , stdout = subprocess.PIPE
-              , stderr = subprocess.STDOUT
+                options + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
             )
         else:
             coqtop = subprocess.Popen(
-                options + list(args)
-              , stdin = subprocess.PIPE
-              , stdout = subprocess.PIPE
-              , preexec_fn = ignore_sigint
+                options + list(args), stdin=subprocess.PIPE, stdout=subprocess.PIPE, preexec_fn=ignore_sigint
             )
 
         r = call('Init', Option(None))
@@ -239,8 +246,10 @@ def restart_coq(*args):
     except OSError:
         print("Error: couldn't launch coqtop")
 
+
 def launch_coq(*args):
     restart_coq(*args)
+
 
 def cur_state():
     if len(states) == 0:
@@ -248,7 +257,8 @@ def cur_state():
     else:
         return state_id
 
-def advance(cmd, encoding = 'utf-8'):
+
+def advance(cmd, encoding='utf-8'):
     global state_id
     r = call('Add', ((cmd, -1), (cur_state(), True)), encoding)
     if r is None:
@@ -259,7 +269,8 @@ def advance(cmd, encoding = 'utf-8'):
     state_id = r.val[0]
     return r
 
-def rewind(step = 1):
+
+def rewind(step=1):
     global states, state_id
     assert step <= len(states)
     idx = len(states) - step
@@ -271,8 +282,10 @@ def query(cmd, encoding = 'utf-8'):
     r = call('Query', (RouteId(route_id),(cmd, cur_state())), encoding)
     return r
 
+
 def goals():
     return call('Goal', ())
+
 
 def read_states():
     return states
